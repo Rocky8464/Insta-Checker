@@ -20,8 +20,8 @@
         .account {
             display: flex;
             align-items: center;
-            margin: 10px 0;
             gap: 10px;
+            margin: 10px 0;
         }
 
         .account span {
@@ -50,6 +50,18 @@
             margin-top: 20px;
             font-weight: bold;
         }
+
+        #tokenBox {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #token {
+            width: 100%;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
@@ -57,23 +69,56 @@
 
     <h1>Instagram Reel Monitor</h1>
 
+    <!-- Token setup -->
+    <div id="tokenBox">
+
+        <h3>GitHub Connection</h3>
+
+        <input
+            type="password"
+            id="token"
+            placeholder="GitHub token"
+        >
+
+        <br>
+
+        <button onclick="saveToken()">
+            Save Token
+        </button>
+
+        <button onclick="clearToken()">
+            Clear Token
+        </button>
+
+    </div>
+
+
+    <!-- Accounts -->
     <div id="accounts">
         Loading...
     </div>
 
+
+    <!-- Add account -->
     <div>
+
         <input
             type="text"
             id="username"
             placeholder="Instagram username"
         >
 
-        <button onclick="addAccount()">Add</button>
+        <button onclick="addAccount()">
+            Add
+        </button>
+
     </div>
 
     <br>
 
-    <button onclick="saveAccounts()">Save Changes</button>
+    <button onclick="saveAccounts()">
+        Save Changes
+    </button>
 
     <div id="status"></div>
 
@@ -84,28 +129,13 @@
    GITHUB SETTINGS
    ========================================================= */
 
-/*
-   PUT YOUR GITHUB USERNAME HERE
-*/
 const GITHUB_USERNAME = "Rocky8464";
 
-/*
-   YOUR REPOSITORY NAME
-*/
 const REPOSITORY = "Insta-Checker";
 
-/*
-   BRANCH
-*/
 const BRANCH = "main";
 
-/*
-   PUT YOUR FINE-GRAINED GITHUB TOKEN HERE
-
-   Example:
-   const GITHUB_TOKEN = "github_pat_xxxxxxxxxxxxx";
-*/
-const GITHUB_TOKEN = "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";
+const FILE_PATH = "accounts.json";
 
 
 /* =========================================================
@@ -118,18 +148,80 @@ let currentFileSha = null;
 
 
 /* =========================================================
-   GITHUB API URL
+   GITHUB API
    ========================================================= */
 
 const API_URL =
-    `https://api.github.com/repos/${GITHUB_USERNAME}/${REPOSITORY}/contents/accounts.json`;
+    `https://api.github.com/repos/${GITHUB_USERNAME}/${REPOSITORY}/contents/${FILE_PATH}`;
 
 
 /* =========================================================
-   LOAD ACCOUNTS FROM GITHUB
+   TOKEN
+   ========================================================= */
+
+function getToken() {
+
+    return localStorage.getItem("github_token");
+
+}
+
+
+function saveToken() {
+
+    const input =
+        document.getElementById("token");
+
+    const token =
+        input.value.trim();
+
+    if (!token) {
+
+        alert("Enter a GitHub token.");
+
+        return;
+    }
+
+    localStorage.setItem(
+        "github_token",
+        token
+    );
+
+    input.value = "";
+
+    setStatus("Token saved in this browser.");
+
+    loadAccounts();
+}
+
+
+function clearToken() {
+
+    localStorage.removeItem(
+        "github_token"
+    );
+
+    document.getElementById("token").value = "";
+
+    setStatus("GitHub token cleared.");
+
+}
+
+
+/* =========================================================
+   LOAD ACCOUNTS
    ========================================================= */
 
 async function loadAccounts() {
+
+    const token = getToken();
+
+    if (!token) {
+
+        document.getElementById("accounts").innerHTML =
+            "<p>Enter your GitHub token above.</p>";
+
+        return;
+    }
 
     setStatus("Loading accounts...");
 
@@ -139,48 +231,51 @@ async function loadAccounts() {
             `${API_URL}?ref=${BRANCH}`,
             {
                 headers: {
-                    "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                    "Authorization": `Bearer ${token}`,
                     "Accept": "application/vnd.github+json"
                 }
             }
         );
 
+
         if (!response.ok) {
 
-            const errorText = await response.text();
+            const errorText =
+                await response.text();
 
             throw new Error(
                 `GitHub error ${response.status}: ${errorText}`
             );
         }
 
-        const data = await response.json();
 
-        /*
-           GitHub returns the file content as Base64.
-        */
+        const data =
+            await response.json();
 
-        const decoded = decodeBase64Unicode(data.content);
 
-        accounts = JSON.parse(decoded);
+        const decoded =
+            decodeBase64Unicode(data.content);
 
-        /*
-           Save SHA.
-           GitHub requires the SHA when updating a file.
-        */
 
-        currentFileSha = data.sha;
+        accounts =
+            JSON.parse(decoded);
+
+
+        currentFileSha =
+            data.sha;
+
 
         displayAccounts();
 
         setStatus("Accounts loaded.");
+
 
     } catch (error) {
 
         console.error(error);
 
         setStatus(
-            "Failed to load accounts. Check GitHub username/token."
+            "❌ Failed to load accounts. Check the token."
         );
     }
 }
@@ -192,43 +287,61 @@ async function loadAccounts() {
 
 function displayAccounts() {
 
-    const container = document.getElementById("accounts");
+    const container =
+        document.getElementById("accounts");
 
     container.innerHTML = "";
 
+
     if (accounts.length === 0) {
 
-        container.innerHTML = "<p>No accounts added.</p>";
+        container.innerHTML =
+            "<p>No accounts added.</p>";
 
         return;
     }
 
-    accounts.forEach((username, index) => {
 
-        const row = document.createElement("div");
+    accounts.forEach(
+        (username, index) => {
 
-        row.className = "account";
+            const row =
+                document.createElement("div");
 
-        const name = document.createElement("span");
+            row.className =
+                "account";
 
-        name.textContent = username;
 
-        const removeButton = document.createElement("button");
+            const name =
+                document.createElement("span");
 
-        removeButton.textContent = "Remove";
+            name.textContent =
+                username;
 
-        removeButton.onclick = function () {
 
-            removeAccount(index);
+            const removeButton =
+                document.createElement("button");
 
-        };
+            removeButton.textContent =
+                "Remove";
 
-        row.appendChild(name);
 
-        row.appendChild(removeButton);
+            removeButton.onclick =
+                function () {
 
-        container.appendChild(row);
-    });
+                    removeAccount(index);
+
+                };
+
+
+            row.appendChild(name);
+
+            row.appendChild(removeButton);
+
+            container.appendChild(row);
+
+        }
+    );
 }
 
 
@@ -238,43 +351,54 @@ function displayAccounts() {
 
 function addAccount() {
 
-    const input = document.getElementById("username");
+    const input =
+        document.getElementById("username");
 
-    const username = input.value.trim();
+    let username =
+        input.value.trim();
+
 
     if (!username) {
 
-        alert("Enter an Instagram username.");
+        alert(
+            "Enter an Instagram username."
+        );
 
         return;
     }
 
+
     /*
-       Remove @ if user enters @username
+       Remove @ if entered
     */
 
-    const cleanUsername = username.replace(/^@/, "");
+    username =
+        username.replace(/^@/, "");
 
 
     /*
        Prevent duplicates
     */
 
-    if (accounts.includes(cleanUsername)) {
+    if (accounts.includes(username)) {
 
-        alert("Account already exists.");
+        alert(
+            "Account already exists."
+        );
 
         return;
     }
 
 
-    accounts.push(cleanUsername);
+    accounts.push(username);
 
     input.value = "";
 
     displayAccounts();
 
-    setStatus("Account added. Click Save Changes.");
+    setStatus(
+        "Account added. Click Save Changes."
+    );
 }
 
 
@@ -284,22 +408,25 @@ function addAccount() {
 
 function removeAccount(index) {
 
-    const username = accounts[index];
+    const username =
+        accounts[index];
 
-    const confirmed = confirm(
+
+    if (!confirm(
         `Remove @${username}?`
-    );
-
-    if (!confirmed) {
+    )) {
 
         return;
     }
+
 
     accounts.splice(index, 1);
 
     displayAccounts();
 
-    setStatus("Account removed. Click Save Changes.");
+    setStatus(
+        "Account removed. Click Save Changes."
+    );
 }
 
 
@@ -309,63 +436,103 @@ function removeAccount(index) {
 
 async function saveAccounts() {
 
-    setStatus("Saving to GitHub...");
+    const token =
+        getToken();
+
+
+    if (!token) {
+
+        alert(
+            "GitHub token is missing."
+        );
+
+        return;
+    }
+
+
+    if (!currentFileSha) {
+
+        alert(
+            "accounts.json has not been loaded yet."
+        );
+
+        return;
+    }
+
+
+    setStatus(
+        "Saving to GitHub..."
+    );
+
 
     try {
 
         /*
-           Convert accounts array to JSON
+           Convert accounts to JSON
         */
 
         const jsonContent =
-            JSON.stringify(accounts, null, 2) + "\n";
+            JSON.stringify(
+                accounts,
+                null,
+                2
+            ) + "\n";
 
 
         /*
-           Convert JSON to Base64
+           Encode as Base64
         */
 
         const encodedContent =
-            encodeBase64Unicode(jsonContent);
+            encodeBase64Unicode(
+                jsonContent
+            );
 
 
         /*
-           GitHub API request
+           Update GitHub file
         */
 
-        const response = await fetch(
-            API_URL,
-            {
-                method: "PUT",
+        const response =
+            await fetch(
+                API_URL,
+                {
+                    method: "PUT",
 
-                headers: {
-                    "Authorization": `Bearer ${GITHUB_TOKEN}`,
-                    "Accept": "application/vnd.github+json",
-                    "Content-Type": "application/json"
-                },
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`,
 
-                body: JSON.stringify({
+                        "Accept":
+                            "application/vnd.github+json",
 
-                    message: "Update monitored Instagram accounts",
+                        "Content-Type":
+                            "application/json"
+                    },
 
-                    content: encodedContent,
+                    body: JSON.stringify({
 
-                    sha: currentFileSha,
+                        message:
+                            "Update monitored Instagram accounts",
 
-                    branch: BRANCH
+                        content:
+                            encodedContent,
 
-                })
-            }
-        );
+                        sha:
+                            currentFileSha,
 
+                        branch:
+                            BRANCH
 
-        /*
-           Check GitHub response
-        */
+                    })
+                }
+            );
+
 
         if (!response.ok) {
 
-            const errorText = await response.text();
+            const errorText =
+                await response.text();
 
             throw new Error(
                 `GitHub error ${response.status}: ${errorText}`
@@ -373,14 +540,12 @@ async function saveAccounts() {
         }
 
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
 
         /*
-           Save the new SHA.
-
-           This is important because the next update
-           needs the latest file SHA.
+           Store new file SHA
         */
 
         currentFileSha =
@@ -391,19 +556,20 @@ async function saveAccounts() {
             "✅ Saved successfully to GitHub."
         );
 
+
     } catch (error) {
 
         console.error(error);
 
         setStatus(
-            "❌ Save failed. Check token permissions."
+            "❌ Save failed."
         );
     }
 }
 
 
 /* =========================================================
-   BASE64 ENCODING
+   BASE64 ENCODE
    ========================================================= */
 
 function encodeBase64Unicode(text) {
@@ -414,7 +580,12 @@ function encodeBase64Unicode(text) {
     let binary = "";
 
     bytes.forEach(
-        byte => binary += String.fromCharCode(byte)
+        byte => {
+
+            binary +=
+                String.fromCharCode(byte);
+
+        }
     );
 
     return btoa(binary);
@@ -422,38 +593,41 @@ function encodeBase64Unicode(text) {
 
 
 /* =========================================================
-   BASE64 DECODING
+   BASE64 DECODE
    ========================================================= */
 
 function decodeBase64Unicode(base64) {
 
-    /*
-       GitHub may include line breaks in Base64.
-    */
+    base64 =
+        base64.replace(/\s/g, "");
 
-    base64 = base64.replace(/\s/g, "");
 
     const binary =
         atob(base64);
 
+
     const bytes =
         Uint8Array.from(
             binary,
-            char => char.charCodeAt(0)
+            char =>
+                char.charCodeAt(0)
         );
 
-    return new TextDecoder().decode(bytes);
+
+    return new TextDecoder()
+        .decode(bytes);
 }
 
 
 /* =========================================================
-   STATUS MESSAGE
+   STATUS
    ========================================================= */
 
 function setStatus(message) {
 
-    document.getElementById("status").textContent =
-        message;
+    document.getElementById("status")
+        .textContent = message;
+
 }
 
 
