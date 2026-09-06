@@ -17,6 +17,8 @@ SEEN_FILE = "seen.json"
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
+INSTAGRAM_SESSIONID = os.environ.get("INSTAGRAM_SESSIONID")
+
 
 # =============================================================
 # LOAD ACCOUNTS
@@ -221,9 +223,20 @@ def send_telegram(username, reel_url):
 
 def get_reels(username):
 
+    if not INSTAGRAM_SESSIONID:
+
+        print(
+            f"[{username}] "
+            f"❌ Instagram session ID missing."
+        )
+
+        return None
+
+
     profile_url = (
         f"https://www.instagram.com/{username}/"
     )
+
 
     api_url = (
         "https://www.instagram.com/api/v1/"
@@ -231,11 +244,12 @@ def get_reels(username):
         f"?username={username}"
     )
 
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/136.0.0.0 Safari/537.36"
+            "Chrome/151.0.0.0 Safari/537.36"
         ),
         "Accept": "application/json",
         "Accept-Language": "en-US,en;q=0.9",
@@ -243,24 +257,37 @@ def get_reels(username):
         "Referer": profile_url,
     }
 
+
     try:
 
         print(
-            f"[{username}] Requesting Instagram API "
-            f"using Chrome TLS..."
+            f"[{username}] "
+            f"Requesting Instagram API "
+            f"using authenticated Chrome TLS..."
         )
 
+
         response = curl_requests.get(
+
             api_url,
+
             headers=headers,
+
+            cookies={
+                "sessionid": INSTAGRAM_SESSIONID
+            },
+
             impersonate="chrome",
+
             timeout=20
         )
+
 
         print(
             f"[{username}] HTTP status:",
             response.status_code
         )
+
 
         # ---------------------------------------------------------
         # HTTP CHECK
@@ -269,16 +296,19 @@ def get_reels(username):
         if response.status_code != 200:
 
             print(
-                f"[{username}] ❌ Instagram HTTP error:",
+                f"[{username}] "
+                f"❌ Instagram HTTP error:",
                 response.status_code
             )
 
             print(
-                f"[{username}] Response preview:",
+                f"[{username}] "
+                f"Response preview:",
                 response.text[:500]
             )
 
             return None
+
 
         # ---------------------------------------------------------
         # JSON CHECK
@@ -296,11 +326,13 @@ def get_reels(username):
             )
 
             print(
-                f"[{username}] Response preview:",
+                f"[{username}] "
+                f"Response preview:",
                 response.text[:500]
             )
 
             return None
+
 
         # ---------------------------------------------------------
         # FIND USER DATA
@@ -312,18 +344,22 @@ def get_reels(username):
             .get("user")
         )
 
+
         if not isinstance(user, dict):
 
             print(
-                f"[{username}] ❌ User data not found."
+                f"[{username}] "
+                f"❌ User data not found."
             )
 
             print(
-                f"[{username}] JSON keys:",
+                f"[{username}] "
+                f"JSON keys:",
                 list(data.keys())
             )
 
             return None
+
 
         # ---------------------------------------------------------
         # FIND TIMELINE
@@ -332,6 +368,7 @@ def get_reels(username):
         timeline = user.get(
             "edge_owner_to_timeline_media"
         )
+
 
         if not isinstance(timeline, dict):
 
@@ -342,10 +379,12 @@ def get_reels(username):
 
             return None
 
+
         edges = timeline.get(
             "edges",
             []
         )
+
 
         if not isinstance(edges, list):
 
@@ -356,49 +395,62 @@ def get_reels(username):
 
             return None
 
+
         # ---------------------------------------------------------
         # EXTRACT REELS
         # ---------------------------------------------------------
 
         reels = {}
 
+
         for edge in edges:
 
             if not isinstance(edge, dict):
                 continue
+
 
             node = edge.get(
                 "node",
                 {}
             )
 
+
             if not isinstance(node, dict):
                 continue
 
+
             if node.get("product_type") != "clips":
                 continue
+
 
             reel_id = (
                 node.get("shortcode")
                 or node.get("code")
             )
 
+
             if not reel_id:
                 continue
+
 
             reel_url = (
                 f"https://www.instagram.com/reel/"
                 f"{reel_id}/"
             )
 
+
             reels[str(reel_id)] = reel_url
 
+
         print(
-            f"[{username}] Reels found: "
+            f"[{username}] "
+            f"Reels found: "
             f"{len(reels)}"
         )
 
+
         return reels
+
 
     except Exception as e:
 
@@ -421,18 +473,26 @@ def check_account(username, previous_seen):
         f"\n[{username}] Worker starting..."
     )
 
+
+    # IDs successfully sent to Telegram.
     successful_ids = set()
+
+
+    # IDs found during this run.
     baseline_ids = set()
+
 
     try:
 
         start_time = time.perf_counter()
+
 
         print()
 
         print(
             f"[{username}] CHECK"
         )
+
 
         print(
             f"[{username}] Started:",
@@ -441,6 +501,7 @@ def check_account(username, previous_seen):
             )
         )
 
+
         # =========================================================
         # FETCH
         # =========================================================
@@ -448,6 +509,7 @@ def check_account(username, previous_seen):
         reels = get_reels(
             username
         )
+
 
         # =========================================================
         # PROCESS
@@ -465,6 +527,7 @@ def check_account(username, previous_seen):
                 f"Database NOT modified."
             )
 
+
         elif len(reels) == 0:
 
             print(
@@ -477,12 +540,15 @@ def check_account(username, previous_seen):
                 f"Database NOT modified."
             )
 
+
         else:
 
             print(
                 f"[{username}] "
-                f"Reels found: {len(reels)}"
+                f"Reels found: "
+                f"{len(reels)}"
             )
+
 
             print(
                 f"[{username}] "
@@ -490,8 +556,9 @@ def check_account(username, previous_seen):
                 f"{len(previous_seen)}"
             )
 
+
             # =====================================================
-            # INITIAL RUN
+            # INITIAL RUN FOR THIS ACCOUNT
             # =====================================================
 
             if not previous_seen:
@@ -501,15 +568,18 @@ def check_account(username, previous_seen):
                     f"Creating baseline..."
                 )
 
+
                 baseline_ids = set(
                     reels.keys()
                 )
+
 
                 print(
                     f"[{username}] "
                     f"Baseline prepared: "
                     f"{len(baseline_ids)}"
                 )
+
 
             # =====================================================
             # NORMAL CHECK
@@ -528,6 +598,7 @@ def check_account(username, previous_seen):
 
                 }
 
+
                 if new_reels:
 
                     print(
@@ -536,10 +607,12 @@ def check_account(username, previous_seen):
                         f"{len(new_reels)}"
                     )
 
+
                     for (
                         reel_id,
                         reel_url
                     ) in new_reels.items():
+
 
                         print(
                             f"[{username}] "
@@ -547,11 +620,13 @@ def check_account(username, previous_seen):
                             f"{reel_id}"
                         )
 
+
                         print(
                             f"[{username}] "
                             f"URL: "
                             f"{reel_url}"
                         )
+
 
                         # =================================================
                         # TELEGRAM
@@ -564,8 +639,9 @@ def check_account(username, previous_seen):
                             )
                         )
 
+
                         # =================================================
-                        # ONLY SAVE IF TELEGRAM SUCCEEDED
+                        # ONLY RETURN SUCCESSFUL IDs
                         # =================================================
 
                         if telegram_success:
@@ -574,11 +650,13 @@ def check_account(username, previous_seen):
                                 reel_id
                             )
 
+
                             print(
                                 f"[{username}] "
                                 f"Will save: "
                                 f"{reel_id}"
                             )
+
 
                         else:
 
@@ -588,6 +666,7 @@ def check_account(username, previous_seen):
                                 f"Telegram failed."
                             )
 
+
                 else:
 
                     print(
@@ -595,8 +674,9 @@ def check_account(username, previous_seen):
                         f"No new reels."
                     )
 
+
         # =========================================================
-        # FINISHED
+        # CHECK FINISHED
         # =========================================================
 
         elapsed = (
@@ -604,11 +684,13 @@ def check_account(username, previous_seen):
             - start_time
         )
 
+
         print(
             f"[{username}] "
             f"Check time: "
             f"{elapsed:.2f} seconds"
         )
+
 
     except Exception as e:
 
@@ -617,6 +699,7 @@ def check_account(username, previous_seen):
             f"❌ WORKER ERROR:",
             repr(e)
         )
+
 
     return {
         "username": username,
@@ -631,9 +714,11 @@ def check_account(username, previous_seen):
 
 print("=" * 70)
 
+
 print(
     "INSTAGRAM REEL MONITOR"
 )
+
 
 print("=" * 70)
 
@@ -644,13 +729,16 @@ print("=" * 70)
 
 USERNAMES = load_accounts()
 
+
 print("Accounts:")
+
 
 for username in USERNAMES:
 
     print(
         f"  - @{username}"
     )
+
 
 print()
 
@@ -661,13 +749,17 @@ if not USERNAMES:
         "❌ No accounts found in accounts.json."
     )
 
+
     print("=" * 70)
+
 
     print(
         "MONITOR FINISHED"
     )
 
+
     print("=" * 70)
+
 
     raise SystemExit
 
@@ -678,9 +770,12 @@ if not USERNAMES:
 
 seen = load_seen()
 
+
 print(
-    f"Seen database accounts: {len(seen)}"
+    f"Seen database accounts: "
+    f"{len(seen)}"
 )
+
 
 print("=" * 70)
 
@@ -691,6 +786,7 @@ print("=" * 70)
 
 account_seen = {}
 
+
 for username in USERNAMES:
 
     values = seen.get(
@@ -698,9 +794,11 @@ for username in USERNAMES:
         []
     )
 
+
     if not isinstance(values, list):
 
         values = []
+
 
     account_seen[username] = set(
 
@@ -716,13 +814,15 @@ for username in USERNAMES:
 # =============================================================
 
 print(
-    f"Parallel workers: {len(USERNAMES)}"
+    f"Parallel workers: "
+    f"{len(USERNAMES)}"
 )
 
 
 with ThreadPoolExecutor(
     max_workers=len(USERNAMES)
 ) as executor:
+
 
     futures = [
 
@@ -736,6 +836,7 @@ with ThreadPoolExecutor(
 
     ]
 
+
     for future in as_completed(
         futures
     ):
@@ -744,9 +845,11 @@ with ThreadPoolExecutor(
 
             result = future.result()
 
+
             username = result[
                 "username"
             ]
+
 
             # =================================================
             # INITIAL BASELINE
@@ -758,10 +861,12 @@ with ThreadPoolExecutor(
                     result["baseline_ids"]
                 )
 
+
                 print(
                     f"[{username}] "
                     f"Baseline added to database."
                 )
+
 
             # =================================================
             # SUCCESSFUL TELEGRAM IDs
@@ -776,13 +881,16 @@ with ThreadPoolExecutor(
                     )
                 )
 
+
                 existing.update(
                     result["successful_ids"]
                 )
 
+
                 seen[username] = sorted(
                     existing
                 )
+
 
                 print(
                     f"[{username}] "
@@ -790,6 +898,7 @@ with ThreadPoolExecutor(
                     f"{len(result['successful_ids'])} "
                     f"new reel(s)."
                 )
+
 
         except Exception as e:
 
@@ -805,16 +914,21 @@ with ThreadPoolExecutor(
 
 save_seen(seen)
 
+
 print()
+
 
 print(
     "✅ seen.json saved."
 )
 
+
 print("=" * 70)
+
 
 print(
     "MONITOR FINISHED"
 )
+
 
 print("=" * 70)
