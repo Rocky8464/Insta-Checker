@@ -4,6 +4,7 @@ import time
 import json
 import os
 import requests
+from curl_cffi import requests as curl_requests
 
 
 # =============================================================
@@ -33,13 +34,11 @@ def load_accounts():
 
             accounts = json.load(f)
 
-
         if not isinstance(accounts, list):
 
             raise ValueError(
                 "accounts.json must contain a JSON list."
             )
-
 
         accounts = [
             str(username).strip().lstrip("@")
@@ -47,9 +46,7 @@ def load_accounts():
             if str(username).strip()
         ]
 
-
         return accounts
-
 
     except Exception as e:
 
@@ -76,7 +73,6 @@ def load_seen():
 
         return {}
 
-
     try:
 
         with open(
@@ -87,7 +83,6 @@ def load_seen():
 
             data = json.load(f)
 
-
         if not isinstance(data, dict):
 
             print(
@@ -97,9 +92,7 @@ def load_seen():
 
             return {}
 
-
         return data
-
 
     except Exception as e:
 
@@ -144,12 +137,10 @@ def send_telegram(username, reel_url):
 
         return False
 
-
     url = (
         f"https://api.telegram.org/"
         f"bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     )
-
 
     message = (
         "🚨 NEW INSTAGRAM REEL\n\n"
@@ -157,12 +148,10 @@ def send_telegram(username, reel_url):
         f"{reel_url}"
     )
 
-
     data = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message
     }
-
 
     try:
 
@@ -171,7 +160,6 @@ def send_telegram(username, reel_url):
             data=data,
             timeout=20
         )
-
 
         if response.status_code != 200:
 
@@ -183,7 +171,6 @@ def send_telegram(username, reel_url):
             print(response.text)
 
             return False
-
 
         try:
 
@@ -200,7 +187,6 @@ def send_telegram(username, reel_url):
 
             return False
 
-
         if result.get("ok") is True:
 
             print(
@@ -208,7 +194,6 @@ def send_telegram(username, reel_url):
             )
 
             return True
-
 
         print(
             f"[{username}] "
@@ -218,7 +203,6 @@ def send_telegram(username, reel_url):
         print(response.text)
 
         return False
-
 
     except Exception as e:
 
@@ -247,12 +231,11 @@ def get_reels(username):
         f"?username={username}"
     )
 
-
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/151.0.0.0 Safari/537.36"
+            "Chrome/136.0.0.0 Safari/537.36"
         ),
         "Accept": "application/json",
         "Accept-Language": "en-US,en;q=0.9",
@@ -260,26 +243,24 @@ def get_reels(username):
         "Referer": profile_url,
     }
 
-
     try:
 
         print(
-            f"[{username}] Requesting Instagram API..."
+            f"[{username}] Requesting Instagram API "
+            f"using Chrome TLS..."
         )
 
-
-        response = requests.get(
+        response = curl_requests.get(
             api_url,
             headers=headers,
+            impersonate="chrome",
             timeout=20
         )
-
 
         print(
             f"[{username}] HTTP status:",
             response.status_code
         )
-
 
         # ---------------------------------------------------------
         # HTTP CHECK
@@ -298,7 +279,6 @@ def get_reels(username):
             )
 
             return None
-
 
         # ---------------------------------------------------------
         # JSON CHECK
@@ -322,7 +302,6 @@ def get_reels(username):
 
             return None
 
-
         # ---------------------------------------------------------
         # FIND USER DATA
         # ---------------------------------------------------------
@@ -332,7 +311,6 @@ def get_reels(username):
             .get("data", {})
             .get("user")
         )
-
 
         if not isinstance(user, dict):
 
@@ -347,7 +325,6 @@ def get_reels(username):
 
             return None
 
-
         # ---------------------------------------------------------
         # FIND TIMELINE
         # ---------------------------------------------------------
@@ -355,7 +332,6 @@ def get_reels(username):
         timeline = user.get(
             "edge_owner_to_timeline_media"
         )
-
 
         if not isinstance(timeline, dict):
 
@@ -366,12 +342,10 @@ def get_reels(username):
 
             return None
 
-
         edges = timeline.get(
             "edges",
             []
         )
-
 
         if not isinstance(edges, list):
 
@@ -382,79 +356,55 @@ def get_reels(username):
 
             return None
 
-
         # ---------------------------------------------------------
         # EXTRACT REELS
         # ---------------------------------------------------------
 
         reels = {}
 
-
         for edge in edges:
 
             if not isinstance(edge, dict):
                 continue
-
 
             node = edge.get(
                 "node",
                 {}
             )
 
-
             if not isinstance(node, dict):
                 continue
 
-
-            # Only accept Instagram Reels.
             if node.get("product_type") != "clips":
                 continue
-
 
             reel_id = (
                 node.get("shortcode")
                 or node.get("code")
             )
 
-
             if not reel_id:
                 continue
-
 
             reel_url = (
                 f"https://www.instagram.com/reel/"
                 f"{reel_id}/"
             )
 
-
             reels[str(reel_id)] = reel_url
-
 
         print(
             f"[{username}] Reels found: "
             f"{len(reels)}"
         )
 
-
         return reels
-
-
-    except requests.RequestException as e:
-
-        print(
-            f"[{username}] "
-            f"❌ Instagram connection error:",
-            repr(e)
-        )
-
-        return None
-
 
     except Exception as e:
 
         print(
             f"[{username}] "
-            f"❌ Instagram parsing error:",
+            f"❌ Instagram connection/parsing error:",
             repr(e)
         )
 
@@ -471,26 +421,18 @@ def check_account(username, previous_seen):
         f"\n[{username}] Worker starting..."
     )
 
-
-    # IDs successfully sent to Telegram.
     successful_ids = set()
-
-
-    # IDs found during this run.
     baseline_ids = set()
-
 
     try:
 
         start_time = time.perf_counter()
-
 
         print()
 
         print(
             f"[{username}] CHECK"
         )
-
 
         print(
             f"[{username}] Started:",
@@ -499,7 +441,6 @@ def check_account(username, previous_seen):
             )
         )
 
-
         # =========================================================
         # FETCH
         # =========================================================
@@ -507,7 +448,6 @@ def check_account(username, previous_seen):
         reels = get_reels(
             username
         )
-
 
         # =========================================================
         # PROCESS
@@ -525,7 +465,6 @@ def check_account(username, previous_seen):
                 f"Database NOT modified."
             )
 
-
         elif len(reels) == 0:
 
             print(
@@ -538,7 +477,6 @@ def check_account(username, previous_seen):
                 f"Database NOT modified."
             )
 
-
         else:
 
             print(
@@ -546,16 +484,14 @@ def check_account(username, previous_seen):
                 f"Reels found: {len(reels)}"
             )
 
-
             print(
                 f"[{username}] "
                 f"Previously seen: "
                 f"{len(previous_seen)}"
             )
 
-
             # =====================================================
-            # INITIAL RUN FOR THIS ACCOUNT
+            # INITIAL RUN
             # =====================================================
 
             if not previous_seen:
@@ -565,18 +501,15 @@ def check_account(username, previous_seen):
                     f"Creating baseline..."
                 )
 
-
                 baseline_ids = set(
                     reels.keys()
                 )
-
 
                 print(
                     f"[{username}] "
                     f"Baseline prepared: "
                     f"{len(baseline_ids)}"
                 )
-
 
             # =====================================================
             # NORMAL CHECK
@@ -595,7 +528,6 @@ def check_account(username, previous_seen):
 
                 }
 
-
                 if new_reels:
 
                     print(
@@ -604,12 +536,10 @@ def check_account(username, previous_seen):
                         f"{len(new_reels)}"
                     )
 
-
                     for (
                         reel_id,
                         reel_url
                     ) in new_reels.items():
-
 
                         print(
                             f"[{username}] "
@@ -617,13 +547,11 @@ def check_account(username, previous_seen):
                             f"{reel_id}"
                         )
 
-
                         print(
                             f"[{username}] "
                             f"URL: "
                             f"{reel_url}"
                         )
-
 
                         # =================================================
                         # TELEGRAM
@@ -636,9 +564,8 @@ def check_account(username, previous_seen):
                             )
                         )
 
-
                         # =================================================
-                        # ONLY RETURN SUCCESSFUL IDs
+                        # ONLY SAVE IF TELEGRAM SUCCEEDED
                         # =================================================
 
                         if telegram_success:
@@ -647,13 +574,11 @@ def check_account(username, previous_seen):
                                 reel_id
                             )
 
-
                             print(
                                 f"[{username}] "
                                 f"Will save: "
                                 f"{reel_id}"
                             )
-
 
                         else:
 
@@ -663,7 +588,6 @@ def check_account(username, previous_seen):
                                 f"Telegram failed."
                             )
 
-
                 else:
 
                     print(
@@ -671,9 +595,8 @@ def check_account(username, previous_seen):
                         f"No new reels."
                     )
 
-
         # =========================================================
-        # CHECK FINISHED
+        # FINISHED
         # =========================================================
 
         elapsed = (
@@ -681,13 +604,11 @@ def check_account(username, previous_seen):
             - start_time
         )
 
-
         print(
             f"[{username}] "
             f"Check time: "
             f"{elapsed:.2f} seconds"
         )
-
 
     except Exception as e:
 
@@ -696,7 +617,6 @@ def check_account(username, previous_seen):
             f"❌ WORKER ERROR:",
             repr(e)
         )
-
 
     return {
         "username": username,
@@ -724,16 +644,13 @@ print("=" * 70)
 
 USERNAMES = load_accounts()
 
-
 print("Accounts:")
-
 
 for username in USERNAMES:
 
     print(
         f"  - @{username}"
     )
-
 
 print()
 
@@ -761,11 +678,9 @@ if not USERNAMES:
 
 seen = load_seen()
 
-
 print(
     f"Seen database accounts: {len(seen)}"
 )
-
 
 print("=" * 70)
 
@@ -776,7 +691,6 @@ print("=" * 70)
 
 account_seen = {}
 
-
 for username in USERNAMES:
 
     values = seen.get(
@@ -784,11 +698,9 @@ for username in USERNAMES:
         []
     )
 
-
     if not isinstance(values, list):
 
         values = []
-
 
     account_seen[username] = set(
 
@@ -812,7 +724,6 @@ with ThreadPoolExecutor(
     max_workers=len(USERNAMES)
 ) as executor:
 
-
     futures = [
 
         executor.submit(
@@ -825,7 +736,6 @@ with ThreadPoolExecutor(
 
     ]
 
-
     for future in as_completed(
         futures
     ):
@@ -834,11 +744,9 @@ with ThreadPoolExecutor(
 
             result = future.result()
 
-
             username = result[
                 "username"
             ]
-
 
             # =================================================
             # INITIAL BASELINE
@@ -850,12 +758,10 @@ with ThreadPoolExecutor(
                     result["baseline_ids"]
                 )
 
-
                 print(
                     f"[{username}] "
                     f"Baseline added to database."
                 )
-
 
             # =================================================
             # SUCCESSFUL TELEGRAM IDs
@@ -870,16 +776,13 @@ with ThreadPoolExecutor(
                     )
                 )
 
-
                 existing.update(
                     result["successful_ids"]
                 )
 
-
                 seen[username] = sorted(
                     existing
                 )
-
 
                 print(
                     f"[{username}] "
@@ -887,7 +790,6 @@ with ThreadPoolExecutor(
                     f"{len(result['successful_ids'])} "
                     f"new reel(s)."
                 )
-
 
         except Exception as e:
 
@@ -903,13 +805,11 @@ with ThreadPoolExecutor(
 
 save_seen(seen)
 
-
 print()
 
 print(
     "✅ seen.json saved."
 )
-
 
 print("=" * 70)
 
