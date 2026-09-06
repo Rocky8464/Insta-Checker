@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insta Checker</title>
 
     <style>
@@ -13,13 +14,14 @@
         }
 
         h1 {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
         .account {
             display: flex;
             align-items: center;
             margin: 10px 0;
+            gap: 10px;
         }
 
         .account span {
@@ -31,7 +33,6 @@
 
         button {
             padding: 10px 15px;
-            margin-left: 10px;
             cursor: pointer;
         }
 
@@ -44,6 +45,11 @@
         #accounts {
             margin-bottom: 25px;
         }
+
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -51,7 +57,9 @@
 
     <h1>Instagram Reel Monitor</h1>
 
-    <div id="accounts"></div>
+    <div id="accounts">
+        Loading...
+    </div>
 
     <div>
         <input
@@ -67,62 +75,395 @@
 
     <button onclick="saveAccounts()">Save Changes</button>
 
-    <script>
-        let accounts = [
-            "nagarpalika.memes_",
-            "obanime0",
-            "trolls_official"
-        ];
+    <div id="status"></div>
 
-        function displayAccounts() {
-            const container = document.getElementById("accounts");
-            container.innerHTML = "";
 
-            accounts.forEach((username, index) => {
-                const row = document.createElement("div");
-                row.className = "account";
+<script>
 
-                row.innerHTML = `
-                    <span>${username}</span>
-                    <button onclick="removeAccount(${index})">
-                        Remove
-                    </button>
-                `;
+/* =========================================================
+   GITHUB SETTINGS
+   ========================================================= */
 
-                container.appendChild(row);
-            });
-        }
+/*
+   PUT YOUR GITHUB USERNAME HERE
+*/
+const GITHUB_USERNAME = "Rocky8464";
 
-        function addAccount() {
-            const input = document.getElementById("username");
-            const username = input.value.trim();
+/*
+   YOUR REPOSITORY NAME
+*/
+const REPOSITORY = "Insta-Checker";
 
-            if (!username) {
-                return;
+/*
+   BRANCH
+*/
+const BRANCH = "main";
+
+/*
+   PUT YOUR FINE-GRAINED GITHUB TOKEN HERE
+
+   Example:
+   const GITHUB_TOKEN = "github_pat_xxxxxxxxxxxxx";
+*/
+const GITHUB_TOKEN = "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";
+
+
+/* =========================================================
+   VARIABLES
+   ========================================================= */
+
+let accounts = [];
+
+let currentFileSha = null;
+
+
+/* =========================================================
+   GITHUB API URL
+   ========================================================= */
+
+const API_URL =
+    `https://api.github.com/repos/${GITHUB_USERNAME}/${REPOSITORY}/contents/accounts.json`;
+
+
+/* =========================================================
+   LOAD ACCOUNTS FROM GITHUB
+   ========================================================= */
+
+async function loadAccounts() {
+
+    setStatus("Loading accounts...");
+
+    try {
+
+        const response = await fetch(
+            `${API_URL}?ref=${BRANCH}`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                    "Accept": "application/vnd.github+json"
+                }
             }
+        );
 
-            if (accounts.includes(username)) {
-                alert("Account already exists.");
-                return;
-            }
+        if (!response.ok) {
 
-            accounts.push(username);
-            input.value = "";
+            const errorText = await response.text();
 
-            displayAccounts();
+            throw new Error(
+                `GitHub error ${response.status}: ${errorText}`
+            );
         }
 
-        function removeAccount(index) {
-            accounts.splice(index, 1);
-            displayAccounts();
-        }
+        const data = await response.json();
 
-        function saveAccounts() {
-            alert("Save function will be connected to GitHub in the next step.");
-        }
+        /*
+           GitHub returns the file content as Base64.
+        */
+
+        const decoded = decodeBase64Unicode(data.content);
+
+        accounts = JSON.parse(decoded);
+
+        /*
+           Save SHA.
+           GitHub requires the SHA when updating a file.
+        */
+
+        currentFileSha = data.sha;
 
         displayAccounts();
-    </script>
+
+        setStatus("Accounts loaded.");
+
+    } catch (error) {
+
+        console.error(error);
+
+        setStatus(
+            "Failed to load accounts. Check GitHub username/token."
+        );
+    }
+}
+
+
+/* =========================================================
+   DISPLAY ACCOUNTS
+   ========================================================= */
+
+function displayAccounts() {
+
+    const container = document.getElementById("accounts");
+
+    container.innerHTML = "";
+
+    if (accounts.length === 0) {
+
+        container.innerHTML = "<p>No accounts added.</p>";
+
+        return;
+    }
+
+    accounts.forEach((username, index) => {
+
+        const row = document.createElement("div");
+
+        row.className = "account";
+
+        const name = document.createElement("span");
+
+        name.textContent = username;
+
+        const removeButton = document.createElement("button");
+
+        removeButton.textContent = "Remove";
+
+        removeButton.onclick = function () {
+
+            removeAccount(index);
+
+        };
+
+        row.appendChild(name);
+
+        row.appendChild(removeButton);
+
+        container.appendChild(row);
+    });
+}
+
+
+/* =========================================================
+   ADD ACCOUNT
+   ========================================================= */
+
+function addAccount() {
+
+    const input = document.getElementById("username");
+
+    const username = input.value.trim();
+
+    if (!username) {
+
+        alert("Enter an Instagram username.");
+
+        return;
+    }
+
+    /*
+       Remove @ if user enters @username
+    */
+
+    const cleanUsername = username.replace(/^@/, "");
+
+
+    /*
+       Prevent duplicates
+    */
+
+    if (accounts.includes(cleanUsername)) {
+
+        alert("Account already exists.");
+
+        return;
+    }
+
+
+    accounts.push(cleanUsername);
+
+    input.value = "";
+
+    displayAccounts();
+
+    setStatus("Account added. Click Save Changes.");
+}
+
+
+/* =========================================================
+   REMOVE ACCOUNT
+   ========================================================= */
+
+function removeAccount(index) {
+
+    const username = accounts[index];
+
+    const confirmed = confirm(
+        `Remove @${username}?`
+    );
+
+    if (!confirmed) {
+
+        return;
+    }
+
+    accounts.splice(index, 1);
+
+    displayAccounts();
+
+    setStatus("Account removed. Click Save Changes.");
+}
+
+
+/* =========================================================
+   SAVE ACCOUNTS TO GITHUB
+   ========================================================= */
+
+async function saveAccounts() {
+
+    setStatus("Saving to GitHub...");
+
+    try {
+
+        /*
+           Convert accounts array to JSON
+        */
+
+        const jsonContent =
+            JSON.stringify(accounts, null, 2) + "\n";
+
+
+        /*
+           Convert JSON to Base64
+        */
+
+        const encodedContent =
+            encodeBase64Unicode(jsonContent);
+
+
+        /*
+           GitHub API request
+        */
+
+        const response = await fetch(
+            API_URL,
+            {
+                method: "PUT",
+
+                headers: {
+                    "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                    "Accept": "application/vnd.github+json",
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    message: "Update monitored Instagram accounts",
+
+                    content: encodedContent,
+
+                    sha: currentFileSha,
+
+                    branch: BRANCH
+
+                })
+            }
+        );
+
+
+        /*
+           Check GitHub response
+        */
+
+        if (!response.ok) {
+
+            const errorText = await response.text();
+
+            throw new Error(
+                `GitHub error ${response.status}: ${errorText}`
+            );
+        }
+
+
+        const data = await response.json();
+
+
+        /*
+           Save the new SHA.
+
+           This is important because the next update
+           needs the latest file SHA.
+        */
+
+        currentFileSha =
+            data.content.sha;
+
+
+        setStatus(
+            "✅ Saved successfully to GitHub."
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        setStatus(
+            "❌ Save failed. Check token permissions."
+        );
+    }
+}
+
+
+/* =========================================================
+   BASE64 ENCODING
+   ========================================================= */
+
+function encodeBase64Unicode(text) {
+
+    const bytes =
+        new TextEncoder().encode(text);
+
+    let binary = "";
+
+    bytes.forEach(
+        byte => binary += String.fromCharCode(byte)
+    );
+
+    return btoa(binary);
+}
+
+
+/* =========================================================
+   BASE64 DECODING
+   ========================================================= */
+
+function decodeBase64Unicode(base64) {
+
+    /*
+       GitHub may include line breaks in Base64.
+    */
+
+    base64 = base64.replace(/\s/g, "");
+
+    const binary =
+        atob(base64);
+
+    const bytes =
+        Uint8Array.from(
+            binary,
+            char => char.charCodeAt(0)
+        );
+
+    return new TextDecoder().decode(bytes);
+}
+
+
+/* =========================================================
+   STATUS MESSAGE
+   ========================================================= */
+
+function setStatus(message) {
+
+    document.getElementById("status").textContent =
+        message;
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+loadAccounts();
+
+</script>
 
 </body>
 </html>
