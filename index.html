@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,138 +15,59 @@
         body {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
-            background: #f5f6f8;
-            color: #222;
+            background: #f4f5f7;
+            color: #202124;
         }
 
         .container {
             max-width: 650px;
-            margin: 50px auto;
+            margin: 55px auto;
             padding: 20px;
         }
 
         .header {
-            margin-bottom: 25px;
+            margin-bottom: 24px;
         }
 
         .header h1 {
-            margin: 0 0 8px;
+            margin: 0 0 7px;
             font-size: 28px;
+            letter-spacing: -0.4px;
         }
 
         .header p {
             margin: 0;
-            color: #666;
+            color: #70757a;
+            font-size: 14px;
         }
+
+
+        /* =========================
+           CARDS
+           ========================= */
 
         .card {
-            background: white;
-            border-radius: 12px;
+            background: #ffffff;
+            border-radius: 14px;
             padding: 22px;
             margin-bottom: 18px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 1px solid #e7e8ea;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
         }
 
-        .card h2 {
-            margin: 0 0 18px;
-            font-size: 19px;
-        }
 
-        .account {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 10px;
-        }
-
-        .account:last-child {
-            margin-bottom: 0;
-        }
-
-        .account-name {
-            flex: 1;
-            padding: 12px 14px;
-            background: #f7f7f8;
-            border: 1px solid #e3e3e3;
-            border-radius: 8px;
-            font-size: 15px;
-        }
-
-        .input-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 18px;
-        }
-
-        input {
-            flex: 1;
-            min-width: 0;
-            padding: 12px 14px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 15px;
-            outline: none;
-        }
-
-        input:focus {
-            border-color: #555;
-        }
-
-        button {
-            border: none;
-            border-radius: 8px;
-            padding: 11px 16px;
-            font-size: 14px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .add-button {
-            background: #222;
-            color: white;
-        }
-
-        .add-button:hover {
-            background: #000;
-        }
-
-        .remove-button {
-            background: #f1f1f1;
-            color: #555;
-        }
-
-        .remove-button:hover {
-            background: #e5e5e5;
-        }
-
-        .save-button {
-            width: 100%;
-            background: #222;
-            color: white;
-            font-size: 15px;
-            padding: 13px;
-            margin-top: 18px;
-        }
-
-        .save-button:hover {
-            background: #000;
-        }
-
-        .token-box {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 18px;
-        }
+        /* =========================
+           TOKEN
+           ========================= */
 
         .token-box h3 {
-            margin: 0 0 8px;
+            margin: 0 0 7px;
             font-size: 17px;
         }
 
         .token-box p {
-            margin: 0 0 15px;
-            color: #666;
+            margin: 0 0 16px;
+            color: #70757a;
             font-size: 14px;
         }
 
@@ -156,38 +76,268 @@
             margin-bottom: 10px;
         }
 
-        .token-button {
-            background: #222;
+
+        /* =========================
+           INPUTS
+           ========================= */
+
+        input {
+            padding: 12px 14px;
+            border: 1px solid #d4d6d9;
+            border-radius: 9px;
+            font-size: 14px;
+            outline: none;
+            background: #fff;
+        }
+
+        input:focus {
+            border-color: #555;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+        }
+
+
+        /* =========================
+           BUTTONS
+           ========================= */
+
+        button {
+            border: none;
+            border-radius: 9px;
+            padding: 11px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s ease;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .primary-button {
+            background: #202124;
             color: white;
         }
+
+        .primary-button:hover {
+            background: #000;
+        }
+
+        .add-button {
+            background: #202124;
+            color: white;
+        }
+
+        .add-button:hover {
+            background: #000;
+        }
+
+        .remove-button {
+            background: #f1f2f3;
+            color: #555;
+            padding: 9px 13px;
+        }
+
+        .remove-button:hover {
+            background: #e7e8ea;
+            color: #222;
+        }
+
+
+        /* =========================
+           CHANGE TOKEN
+           ========================= */
 
         .change-token {
             display: none;
             background: white;
-            border: 1px solid #ddd;
-            color: #555;
+            color: #666;
+            border: 1px solid #dedfe1;
             margin-bottom: 18px;
         }
 
         .change-token:hover {
-            background: #f5f5f5;
+            background: #f8f8f8;
         }
 
-        #status {
-            margin-top: 15px;
+
+        /* =========================
+           ACCOUNTS
+           ========================= */
+
+        .accounts-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .accounts-title h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .account-count {
+            font-size: 12px;
+            color: #777;
+            background: #f1f2f3;
+            padding: 5px 9px;
+            border-radius: 20px;
+        }
+
+        .account {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 9px;
+        }
+
+        .account-name {
+            flex: 1;
+            padding: 12px 14px;
+            background: #f8f9fa;
+            border: 1px solid #e6e7e9;
+            border-radius: 9px;
             font-size: 14px;
-            color: #666;
-            min-height: 20px;
         }
 
         .empty {
-            color: #888;
+            color: #8a8d91;
             font-size: 14px;
-            padding: 5px 0;
+            padding: 8px 0;
         }
 
-        .connected {
-            color: #198754;
+
+        /* =========================
+           ADD AREA
+           ========================= */
+
+        .input-row {
+            display: flex;
+            gap: 9px;
+            margin-top: 18px;
+        }
+
+        .input-row input {
+            flex: 1;
+            min-width: 0;
+        }
+
+
+        /* =========================
+           SAVE AREA
+           ========================= */
+
+        .save-area {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid #eeeeef;
+        }
+
+        .save-button {
+            width: 100%;
+            padding: 13px;
+            background: #dfe1e4;
+            color: #777;
+            font-size: 15px;
+            cursor: default;
+        }
+
+        .save-button.has-changes {
+            background: #202124;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .save-button.has-changes:hover {
+            background: #000;
+        }
+
+
+        /* =========================
+           STATUS
+           ========================= */
+
+        #status {
+            min-height: 22px;
+            margin-top: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #777;
+        }
+
+        .status-success {
+            color: #188038 !important;
+        }
+
+        .status-warning {
+            color: #b06000 !important;
+        }
+
+        .status-error {
+            color: #c5221f !important;
+        }
+
+
+        /* =========================
+           STATUS ICONS
+           ========================= */
+
+        .status-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 17px;
+            height: 17px;
+            margin-right: 5px;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            vertical-align: -3px;
+        }
+
+        .green-icon {
+            background: #1e8e3e;
+            color: white;
+        }
+
+        .red-icon {
+            background: #d93025;
+            color: white;
+        }
+
+        .yellow-icon {
+            background: #f9ab00;
+            color: white;
+        }
+
+
+        /* =========================
+           LOADING SPINNER
+           ========================= */
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 6px;
+            border: 2px solid #d7d9dc;
+            border-top-color: #555;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: -2px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
 
     </style>
@@ -198,20 +348,28 @@
 
 <div class="container">
 
+
+    <!-- HEADER -->
+
     <div class="header">
 
         <h1>Instagram Reel Monitor</h1>
 
-        <p>Manage the Instagram accounts you want to monitor.</p>
+        <p>
+            Manage the Instagram accounts you want to monitor.
+        </p>
 
     </div>
 
 
-    <!-- TOKEN SETUP -->
+    <!-- TOKEN -->
 
-    <div id="tokenBox" class="card token-box">
+    <div
+        id="tokenBox"
+        class="card token-box"
+    >
 
-        <h3>GitHub Connection</h3>
+        <h3>Connect GitHub</h3>
 
         <p>
             Enter your GitHub token to manage the account list.
@@ -225,7 +383,7 @@
         >
 
         <button
-            class="token-button"
+            class="primary-button"
             onclick="saveToken()"
         >
             Connect
@@ -249,12 +407,26 @@
 
     <div class="card">
 
-        <h2>Monitored Accounts</h2>
+        <div class="accounts-title">
+
+            <h2>Monitored Accounts</h2>
+
+            <span
+                id="accountCount"
+                class="account-count"
+            >
+                0 accounts
+            </span>
+
+        </div>
+
 
         <div id="accounts">
             Loading...
         </div>
 
+
+        <!-- ADD -->
 
         <div class="input-row">
 
@@ -262,6 +434,7 @@
                 type="text"
                 id="username"
                 placeholder="Instagram username"
+                onkeydown="handleEnter(event)"
             >
 
             <button
@@ -274,15 +447,23 @@
         </div>
 
 
-        <button
-            class="save-button"
-            onclick="saveAccounts()"
-        >
-            Save Changes
-        </button>
+        <!-- SAVE -->
+
+        <div class="save-area">
+
+            <button
+                id="saveButton"
+                class="save-button"
+                onclick="saveAccounts()"
+                disabled
+            >
+                Save Changes
+            </button>
 
 
-        <div id="status"></div>
+            <div id="status"></div>
+
+        </div>
 
     </div>
 
@@ -295,7 +476,7 @@
    GITHUB SETTINGS
    ========================================================= */
 
-const GITHUB_USERNAME = "Rocky8464";
+const GITHUB_USERNAME = "YOUR_GITHUB_USERNAME";
 
 const REPOSITORY = "Insta-Checker";
 
@@ -311,6 +492,10 @@ const FILE_PATH = "accounts.json";
 let accounts = [];
 
 let currentFileSha = null;
+
+let hasUnsavedChanges = false;
+
+let isSaving = false;
 
 
 /* =========================================================
@@ -343,7 +528,10 @@ function saveToken() {
 
     if (!token) {
 
-        alert("Enter a GitHub token.");
+        setStatus(
+            "Please enter a GitHub token.",
+            "error"
+        );
 
         return;
     }
@@ -372,10 +560,15 @@ function changeToken() {
 
     currentFileSha = null;
 
+    accounts = [];
+
+    hasUnsavedChanges = false;
+
     updateTokenUI();
 
-    document.getElementById("accounts").innerHTML =
-        "<p class='empty'>Enter a GitHub token to continue.</p>";
+    displayAccounts();
+
+    updateSaveButton();
 
     setStatus("");
 
@@ -398,13 +591,15 @@ function updateTokenUI() {
 
         tokenBox.style.display = "none";
 
-        changeTokenButton.style.display = "inline-block";
+        changeTokenButton.style.display =
+            "inline-block";
 
     } else {
 
         tokenBox.style.display = "block";
 
-        changeTokenButton.style.display = "none";
+        changeTokenButton.style.display =
+            "none";
 
     }
 
@@ -426,11 +621,15 @@ async function loadAccounts() {
         document.getElementById("accounts").innerHTML =
             "<p class='empty'>Connect GitHub to load accounts.</p>";
 
+        updateAccountCount();
+
         return;
     }
 
 
-    setStatus("Loading accounts...");
+    setStatus(
+        '<span class="spinner"></span>Loading accounts...'
+    );
 
 
     try {
@@ -483,14 +682,16 @@ async function loadAccounts() {
             data.sha;
 
 
+        hasUnsavedChanges = false;
+
         displayAccounts();
 
-        setStatus(
-            "✓ Connected to GitHub"
-        );
+        updateSaveButton();
 
-        document.getElementById("status")
-            .className = "connected";
+        setStatus(
+            '<span class="status-icon green-icon">✓</span>Connected to GitHub',
+            "success"
+        );
 
 
     } catch (error) {
@@ -498,11 +699,9 @@ async function loadAccounts() {
         console.error(error);
 
         setStatus(
-            "❌ " + error.message
+            `<span class="status-icon red-icon">!</span>${escapeHtml(error.message)}`,
+            "error"
         );
-
-        document.getElementById("status")
-            .className = "";
 
     }
 
@@ -524,7 +723,9 @@ function displayAccounts() {
     if (accounts.length === 0) {
 
         container.innerHTML =
-            "<p class='empty'>No accounts added.</p>";
+            "<p class='empty'>No accounts added yet.</p>";
+
+        updateAccountCount();
 
         return;
     }
@@ -577,6 +778,30 @@ function displayAccounts() {
         }
     );
 
+
+    updateAccountCount();
+
+}
+
+
+/* =========================================================
+   ACCOUNT COUNT
+   ========================================================= */
+
+function updateAccountCount() {
+
+    const count =
+        accounts.length;
+
+    const element =
+        document.getElementById("accountCount");
+
+
+    element.textContent =
+        count === 1
+            ? "1 account"
+            : `${count} accounts`;
+
 }
 
 
@@ -595,10 +820,6 @@ function addAccount() {
 
     if (!username) {
 
-        alert(
-            "Enter an Instagram username."
-        );
-
         return;
     }
 
@@ -609,8 +830,9 @@ function addAccount() {
 
     if (accounts.includes(username)) {
 
-        alert(
-            "Account already exists."
+        setStatus(
+            `<span class="status-icon yellow-icon">!</span>@${escapeHtml(username)} is already added.`,
+            "warning"
         );
 
         return;
@@ -621,14 +843,32 @@ function addAccount() {
 
     input.value = "";
 
+    hasUnsavedChanges = true;
+
     displayAccounts();
 
+    updateSaveButton();
+
+
     setStatus(
-        "Account added. Click Save Changes."
+        '<span class="status-icon yellow-icon">!</span>Unsaved changes — save when ready.',
+        "warning"
     );
 
-    document.getElementById("status")
-        .className = "";
+}
+
+
+/* =========================================================
+   ENTER KEY
+   ========================================================= */
+
+function handleEnter(event) {
+
+    if (event.key === "Enter") {
+
+        addAccount();
+
+    }
 
 }
 
@@ -639,28 +879,50 @@ function addAccount() {
 
 function removeAccount(index) {
 
-    const username =
-        accounts[index];
-
-
-    if (!confirm(
-        `Remove @${username}?`
-    )) {
-
-        return;
-    }
-
-
     accounts.splice(index, 1);
+
+    hasUnsavedChanges = true;
 
     displayAccounts();
 
+    updateSaveButton();
+
+
     setStatus(
-        "Account removed. Click Save Changes."
+        '<span class="status-icon yellow-icon">!</span>Unsaved changes — save when ready.',
+        "warning"
     );
 
-    document.getElementById("status")
-        .className = "";
+}
+
+
+/* =========================================================
+   SAVE BUTTON UI
+   ========================================================= */
+
+function updateSaveButton() {
+
+    const button =
+        document.getElementById("saveButton");
+
+
+    if (hasUnsavedChanges) {
+
+        button.disabled = false;
+
+        button.classList.add(
+            "has-changes"
+        );
+
+    } else {
+
+        button.disabled = true;
+
+        button.classList.remove(
+            "has-changes"
+        );
+
+    }
 
 }
 
@@ -700,7 +962,7 @@ async function getLatestFile() {
             await response.text();
 
         throw new Error(
-            `Could not get latest file: ${response.status} ${errorText}`
+            `GitHub error ${response.status}: ${errorText}`
         );
     }
 
@@ -716,29 +978,61 @@ async function getLatestFile() {
 
 async function saveAccounts() {
 
+    if (isSaving) {
+
+        return;
+    }
+
+
     const token =
         getToken();
 
 
     if (!token) {
 
-        alert(
-            "GitHub token is missing."
+        setStatus(
+            '<span class="status-icon red-icon">!</span>GitHub token is missing.',
+            "error"
         );
 
         return;
     }
 
 
+    if (!hasUnsavedChanges) {
+
+        return;
+    }
+
+
+    isSaving = true;
+
+
+    const button =
+        document.getElementById("saveButton");
+
+
+    button.disabled = true;
+
+    button.classList.remove(
+        "has-changes"
+    );
+
+    button.innerHTML =
+        '<span class="spinner"></span>Saving...';
+
+
     setStatus(
-        "Saving to GitHub..."
+        "Updating GitHub...",
+        ""
     );
 
 
     try {
 
         /*
-           Get latest SHA before writing.
+           Get the latest SHA immediately
+           before writing.
         */
 
         const latestFile =
@@ -818,26 +1112,43 @@ async function saveAccounts() {
             data.content.sha;
 
 
-        setStatus(
-            "✓ Changes saved successfully."
-        );
+        hasUnsavedChanges = false;
 
-        document.getElementById("status")
-            .className = "connected";
+
+        setStatus(
+            '<span class="status-icon green-icon">✓</span>Changes saved successfully',
+            "success"
+        );
 
 
     } catch (error) {
 
         console.error(error);
 
+
         setStatus(
-            "❌ " + error.message
+            `<span class="status-icon red-icon">!</span>${escapeHtml(error.message)}`,
+            "error"
         );
 
-        document.getElementById("status")
-            .className = "";
+
+        /*
+           Keep unsaved state if save failed.
+        */
+
+        hasUnsavedChanges = true;
 
     }
+
+
+    isSaving = false;
+
+
+    button.innerHTML =
+        "Save Changes";
+
+
+    updateSaveButton();
 
 }
 
@@ -886,6 +1197,7 @@ function decodeBase64Unicode(base64) {
     const bytes =
         Uint8Array.from(
             binary,
+
             char =>
                 char.charCodeAt(0)
         );
@@ -901,10 +1213,57 @@ function decodeBase64Unicode(base64) {
    STATUS
    ========================================================= */
 
-function setStatus(message) {
+function setStatus(message, type = "") {
 
-    document.getElementById("status")
-        .textContent = message;
+    const status =
+        document.getElementById("status");
+
+    status.innerHTML =
+        message;
+
+    status.className = "";
+
+
+    if (type === "success") {
+
+        status.classList.add(
+            "status-success"
+        );
+
+    }
+
+    if (type === "warning") {
+
+        status.classList.add(
+            "status-warning"
+        );
+
+    }
+
+    if (type === "error") {
+
+        status.classList.add(
+            "status-error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHtml(text) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        text;
+
+    return div.innerHTML;
 
 }
 
