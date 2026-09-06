@@ -1,10 +1,128 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Insta Checker</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        .account {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .account span {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        input {
+            padding: 10px;
+            width: 70%;
+            box-sizing: border-box;
+        }
+
+        #accounts {
+            margin-bottom: 25px;
+        }
+    </style>
 </head>
+
 <body>
+
     <h1>Instagram Reel Monitor</h1>
-    <p>Account manager will go here.</p>
+
+    <div id="accounts"></div>
+
+    <div>
+        <input
+            type="text"
+            id="username"
+            placeholder="Instagram username"
+        >
+
+        <button onclick="addAccount()">Add</button>
+    </div>
+
+    <br>
+
+    <button onclick="saveAccounts()">Save Changes</button>
+
+    <script>
+        let accounts = [
+            "nagarpalika.memes_",
+            "obanime0",
+            "trolls_official"
+        ];
+
+        function displayAccounts() {
+            const container = document.getElementById("accounts");
+            container.innerHTML = "";
+
+            accounts.forEach((username, index) => {
+                const row = document.createElement("div");
+                row.className = "account";
+
+                row.innerHTML = `
+                    <span>${username}</span>
+                    <button onclick="removeAccount(${index})">
+                        Remove
+                    </button>
+                `;
+
+                container.appendChild(row);
+            });
+        }
+
+        function addAccount() {
+            const input = document.getElementById("username");
+            const username = input.value.trim();
+
+            if (!username) {
+                return;
+            }
+
+            if (accounts.includes(username)) {
+                alert("Account already exists.");
+                return;
+            }
+
+            accounts.push(username);
+            input.value = "";
+
+            displayAccounts();
+        }
+
+        function removeAccount(index) {
+            accounts.splice(index, 1);
+            displayAccounts();
+        }
+
+        function saveAccounts() {
+            alert("Save function will be connected to GitHub in the next step.");
+        }
+
+        displayAccounts();
+    </script>
+
 </body>
 </html>
