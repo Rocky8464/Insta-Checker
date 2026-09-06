@@ -1,10 +1,10 @@
+from playwright.sync_api import sync_playwright
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import json
 import os
 import requests
-from curl_cffi import requests as curl_requests
 
 
 # =============================================================
@@ -18,6 +18,14 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 INSTAGRAM_SESSIONID = os.environ.get("INSTAGRAM_SESSIONID")
+
+
+# Maximum time we allow Instagram to populate the initial grid.
+PAGE_LOAD_TIMEOUT = 10
+
+# Once the number of items stops increasing, wait this long
+# before collecting the final set.
+SETTLE_TIME = 1
 
 
 # =============================================================
@@ -36,11 +44,13 @@ def load_accounts():
 
             accounts = json.load(f)
 
+
         if not isinstance(accounts, list):
 
             raise ValueError(
                 "accounts.json must contain a JSON list."
             )
+
 
         accounts = [
             str(username).strip().lstrip("@")
@@ -48,7 +58,9 @@ def load_accounts():
             if str(username).strip()
         ]
 
+
         return accounts
+
 
     except Exception as e:
 
@@ -75,6 +87,7 @@ def load_seen():
 
         return {}
 
+
     try:
 
         with open(
@@ -85,6 +98,7 @@ def load_seen():
 
             data = json.load(f)
 
+
         if not isinstance(data, dict):
 
             print(
@@ -94,7 +108,9 @@ def load_seen():
 
             return {}
 
+
         return data
+
 
     except Exception as e:
 
@@ -139,10 +155,12 @@ def send_telegram(username, reel_url):
 
         return False
 
+
     url = (
         f"https://api.telegram.org/"
         f"bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     )
+
 
     message = (
         "🚨 NEW INSTAGRAM REEL\n\n"
@@ -150,10 +168,12 @@ def send_telegram(username, reel_url):
         f"{reel_url}"
     )
 
+
     data = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message
     }
+
 
     try:
 
@@ -162,6 +182,7 @@ def send_telegram(username, reel_url):
             data=data,
             timeout=20
         )
+
 
         if response.status_code != 200:
 
@@ -173,6 +194,7 @@ def send_telegram(username, reel_url):
             print(response.text)
 
             return False
+
 
         try:
 
@@ -189,6 +211,7 @@ def send_telegram(username, reel_url):
 
             return False
 
+
         if result.get("ok") is True:
 
             print(
@@ -196,6 +219,7 @@ def send_telegram(username, reel_url):
             )
 
             return True
+
 
         print(
             f"[{username}] "
@@ -205,6 +229,7 @@ def send_telegram(username, reel_url):
         print(response.text)
 
         return False
+
 
     except Exception as e:
 
@@ -221,246 +246,173 @@ def send_telegram(username, reel_url):
 # GET REELS
 # =============================================================
 
-def get_reels(username):
+def get_reels(page, username):
 
-    if not INSTAGRAM_SESSIONID:
-
-        print(
-            f"[{username}] "
-            f"❌ Instagram session ID missing."
-        )
-
-        return None
-
-
-    profile_url = (
+    expected_url = (
         f"https://www.instagram.com/{username}/"
     )
 
 
-    api_url = (
-        "https://www.instagram.com/api/v1/"
-        "users/web_profile_info/"
-        f"?username={username}"
+    current_url = (
+        page.url.rstrip("/") + "/"
     )
 
 
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/151.0.0.0 Safari/537.36"
-        ),
-        "Accept": "application/json",
-        "Accept-Language": "en-US,en;q=0.9",
-        "X-IG-App-ID": "936619743392459",
-        "Referer": profile_url,
-    }
-
-
-    try:
+    # Make sure Instagram actually loaded
+    # the requested profile.
+    if not current_url.startswith(expected_url):
 
         print(
-            f"[{username}] "
-            f"Requesting Instagram API "
-            f"using authenticated Chrome TLS..."
-        )
-
-
-        response = curl_requests.get(
-
-            api_url,
-
-            headers=headers,
-
-            cookies={
-                "sessionid": INSTAGRAM_SESSIONID
-            },
-
-            impersonate="chrome",
-
-            timeout=20
-        )
-
-
-        print(
-            f"[{username}] HTTP status:",
-            response.status_code
-        )
-
-
-        # ---------------------------------------------------------
-        # HTTP CHECK
-        # ---------------------------------------------------------
-
-        if response.status_code != 200:
-
-            print(
-                f"[{username}] "
-                f"❌ Instagram HTTP error:",
-                response.status_code
-            )
-
-            print(
-                f"[{username}] "
-                f"Response preview:",
-                response.text[:500]
-            )
-
-            return None
-
-
-        # ---------------------------------------------------------
-        # JSON CHECK
-        # ---------------------------------------------------------
-
-        try:
-
-            data = response.json()
-
-        except Exception:
-
-            print(
-                f"[{username}] "
-                f"❌ Instagram returned invalid JSON."
-            )
-
-            print(
-                f"[{username}] "
-                f"Response preview:",
-                response.text[:500]
-            )
-
-            return None
-
-
-        # ---------------------------------------------------------
-        # FIND USER DATA
-        # ---------------------------------------------------------
-
-        user = (
-            data
-            .get("data", {})
-            .get("user")
-        )
-
-
-        if not isinstance(user, dict):
-
-            print(
-                f"[{username}] "
-                f"❌ User data not found."
-            )
-
-            print(
-                f"[{username}] "
-                f"JSON keys:",
-                list(data.keys())
-            )
-
-            return None
-
-
-        # ---------------------------------------------------------
-        # FIND TIMELINE
-        # ---------------------------------------------------------
-
-        timeline = user.get(
-            "edge_owner_to_timeline_media"
-        )
-
-
-        if not isinstance(timeline, dict):
-
-            print(
-                f"[{username}] "
-                f"❌ Timeline data not found."
-            )
-
-            return None
-
-
-        edges = timeline.get(
-            "edges",
-            []
-        )
-
-
-        if not isinstance(edges, list):
-
-            print(
-                f"[{username}] "
-                f"❌ Invalid timeline edges."
-            )
-
-            return None
-
-
-        # ---------------------------------------------------------
-        # EXTRACT REELS
-        # ---------------------------------------------------------
-
-        reels = {}
-
-
-        for edge in edges:
-
-            if not isinstance(edge, dict):
-                continue
-
-
-            node = edge.get(
-                "node",
-                {}
-            )
-
-
-            if not isinstance(node, dict):
-                continue
-
-
-            if node.get("product_type") != "clips":
-                continue
-
-
-            reel_id = (
-                node.get("shortcode")
-                or node.get("code")
-            )
-
-
-            if not reel_id:
-                continue
-
-
-            reel_url = (
-                f"https://www.instagram.com/reel/"
-                f"{reel_id}/"
-            )
-
-
-            reels[str(reel_id)] = reel_url
-
-
-        print(
-            f"[{username}] "
-            f"Reels found: "
-            f"{len(reels)}"
-        )
-
-
-        return reels
-
-
-    except Exception as e:
-
-        print(
-            f"[{username}] "
-            f"❌ Instagram connection/parsing error:",
-            repr(e)
+            f"[{username}] ⚠️ Unexpected URL:",
+            page.url
         )
 
         return None
+
+
+    links = page.locator("a").evaluate_all(
+        """elements => elements.map(e => e.href)"""
+    )
+
+
+    reels = {}
+
+
+    for link in links:
+
+        if not isinstance(link, str):
+
+            continue
+
+
+        if "/reel/" not in link:
+
+            continue
+
+
+        clean_url = (
+            link
+            .split("?")[0]
+            .split("#")[0]
+        )
+
+
+        parts = (
+            clean_url
+            .rstrip("/")
+            .split("/")
+        )
+
+
+        try:
+
+            reel_index = parts.index("reel")
+
+            reel_id = parts[
+                reel_index + 1
+            ]
+
+
+        except (ValueError, IndexError):
+
+            continue
+
+
+        if not reel_id:
+
+            continue
+
+
+        if len(reel_id) < 5:
+
+            continue
+
+
+        reels[reel_id] = clean_url
+
+
+    return reels
+
+
+# =============================================================
+# WAIT FOR GRID
+# =============================================================
+
+def wait_for_grid(page, username):
+
+    start = time.perf_counter()
+
+    last_count = -1
+    stable_since = None
+
+
+    while True:
+
+        elapsed = (
+            time.perf_counter() - start
+        )
+
+
+        # Get the number of profile grid links
+        # currently loaded.
+        count = page.locator(
+            'a[href*="/p/"], a[href*="/reel/"]'
+        ).count()
+
+
+        # We have reached the maximum expected
+        # initial grid.
+        if count >= 12:
+
+            print(
+                f"[{username}] Initial grid loaded: "
+                f"{count} items"
+            )
+
+            return
+
+
+        # The number of items changed.
+        if count != last_count:
+
+            last_count = count
+
+            stable_since = (
+                time.perf_counter()
+            )
+
+
+        # We have items and the count hasn't changed
+        # for SETTLE_TIME.
+        elif count > 0 and stable_since is not None:
+
+            if (
+                time.perf_counter()
+                - stable_since
+                >= SETTLE_TIME
+            ):
+
+                print(
+                    f"[{username}] Grid settled: "
+                    f"{count} items"
+                )
+
+                return
+
+
+        # Absolute maximum wait.
+        if elapsed >= PAGE_LOAD_TIMEOUT:
+
+            print(
+                f"[{username}] Grid wait reached "
+                f"{PAGE_LOAD_TIMEOUT}s: "
+                f"{count} items"
+            )
+
+            return
+
+
+        page.wait_for_timeout(100)
 
 
 # =============================================================
@@ -484,212 +436,310 @@ def check_account(username, previous_seen):
 
     try:
 
-        start_time = time.perf_counter()
+        # Playwright and browser are created
+        # for this account.
+        with sync_playwright() as p:
 
-
-        print()
-
-        print(
-            f"[{username}] CHECK"
-        )
-
-
-        print(
-            f"[{username}] Started:",
-            datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-        )
-
-
-        # =========================================================
-        # FETCH
-        # =========================================================
-
-        reels = get_reels(
-            username
-        )
-
-
-        # =========================================================
-        # PROCESS
-        # =========================================================
-
-        if reels is None:
-
-            print(
-                f"[{username}] "
-                f"❌ Invalid Instagram response."
-            )
-
-            print(
-                f"[{username}] "
-                f"Database NOT modified."
+            browser = p.chromium.launch(
+                headless=True
             )
 
 
-        elif len(reels) == 0:
+            # =================================================
+            # CREATE BROWSER CONTEXT
+            # =================================================
 
-            print(
-                f"[{username}] "
-                f"⚠️ 0 valid reels returned."
-            )
-
-            print(
-                f"[{username}] "
-                f"Database NOT modified."
-            )
+            context = browser.new_context()
 
 
-        else:
+            # Add Instagram login session.
+            if INSTAGRAM_SESSIONID:
 
-            print(
-                f"[{username}] "
-                f"Reels found: "
-                f"{len(reels)}"
-            )
-
-
-            print(
-                f"[{username}] "
-                f"Previously seen: "
-                f"{len(previous_seen)}"
-            )
-
-
-            # =====================================================
-            # INITIAL RUN FOR THIS ACCOUNT
-            # =====================================================
-
-            if not previous_seen:
+                context.add_cookies([
+                    {
+                        "name": "sessionid",
+                        "value": INSTAGRAM_SESSIONID,
+                        "domain": ".instagram.com",
+                        "path": "/",
+                        "secure": True,
+                        "httpOnly": True
+                    }
+                ])
 
                 print(
                     f"[{username}] "
-                    f"Creating baseline..."
+                    f"Instagram session cookie added."
                 )
-
-
-                baseline_ids = set(
-                    reels.keys()
-                )
-
-
-                print(
-                    f"[{username}] "
-                    f"Baseline prepared: "
-                    f"{len(baseline_ids)}"
-                )
-
-
-            # =====================================================
-            # NORMAL CHECK
-            # =====================================================
 
             else:
 
-                new_reels = {
-
-                    reel_id: reel_url
-
-                    for reel_id, reel_url
-                    in reels.items()
-
-                    if reel_id not in previous_seen
-
-                }
+                print(
+                    f"[{username}] "
+                    f"⚠️ INSTAGRAM_SESSIONID not found."
+                )
 
 
-                if new_reels:
+            page = context.new_page()
+
+
+            print(
+                f"[{username}] Browser started."
+            )
+
+
+            start_time = time.perf_counter()
+
+
+            print()
+
+            print(
+                f"[{username}] CHECK"
+            )
+
+
+            print(
+                f"[{username}] Started:",
+                datetime.now().strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            )
+
+
+            try:
+
+                # =================================================
+                # FETCH
+                # =================================================
+
+                response = page.goto(
+                    f"https://www.instagram.com/{username}/",
+                    wait_until="domcontentloaded",
+                    timeout=60000
+                )
+
+
+                print(
+                    f"[{username}] HTTP status:",
+                    response.status
+                    if response else "Unknown"
+                )
+
+
+                # =================================================
+                # WAIT FOR GRID
+                # =================================================
+
+                wait_for_grid(
+                    page,
+                    username
+                )
+
+
+                # =================================================
+                # PROCESS
+                # =================================================
+
+                reels = get_reels(
+                    page,
+                    username
+                )
+
+
+                if reels is None:
 
                     print(
                         f"[{username}] "
-                        f"🚨 NEW REELS: "
-                        f"{len(new_reels)}"
+                        f"❌ Invalid Instagram page."
                     )
 
 
-                    for (
-                        reel_id,
-                        reel_url
-                    ) in new_reels.items():
+                    print(
+                        f"[{username}] "
+                        f"Database NOT modified."
+                    )
 
 
-                        print(
-                            f"[{username}] "
-                            f"NEW REEL ID: "
-                            f"{reel_id}"
-                        )
+                elif len(reels) == 0:
+
+                    print(
+                        f"[{username}] "
+                        f"⚠️ 0 valid reels returned."
+                    )
 
 
-                        print(
-                            f"[{username}] "
-                            f"URL: "
-                            f"{reel_url}"
-                        )
-
-
-                        # =================================================
-                        # TELEGRAM
-                        # =================================================
-
-                        telegram_success = (
-                            send_telegram(
-                                username,
-                                reel_url
-                            )
-                        )
-
-
-                        # =================================================
-                        # ONLY RETURN SUCCESSFUL IDs
-                        # =================================================
-
-                        if telegram_success:
-
-                            successful_ids.add(
-                                reel_id
-                            )
-
-
-                            print(
-                                f"[{username}] "
-                                f"Will save: "
-                                f"{reel_id}"
-                            )
-
-
-                        else:
-
-                            print(
-                                f"[{username}] "
-                                f"Not saved because "
-                                f"Telegram failed."
-                            )
+                    print(
+                        f"[{username}] "
+                        f"Database NOT modified."
+                    )
 
 
                 else:
 
                     print(
                         f"[{username}] "
-                        f"No new reels."
+                        f"Reels found: {len(reels)}"
                     )
 
 
-        # =========================================================
-        # CHECK FINISHED
-        # =========================================================
-
-        elapsed = (
-            time.perf_counter()
-            - start_time
-        )
+                    print(
+                        f"[{username}] "
+                        f"Previously seen: "
+                        f"{len(previous_seen)}"
+                    )
 
 
-        print(
-            f"[{username}] "
-            f"Check time: "
-            f"{elapsed:.2f} seconds"
-        )
+                    # =================================================
+                    # INITIAL RUN FOR THIS ACCOUNT
+                    # =================================================
+
+                    if not previous_seen:
+
+                        print(
+                            f"[{username}] "
+                            f"Creating baseline..."
+                        )
+
+
+                        baseline_ids = set(
+                            reels.keys()
+                        )
+
+
+                        print(
+                            f"[{username}] "
+                            f"Baseline prepared: "
+                            f"{len(baseline_ids)}"
+                        )
+
+
+                    # =================================================
+                    # NORMAL CHECK
+                    # =================================================
+
+                    else:
+
+                        new_reels = {
+
+                            reel_id: reel_url
+
+                            for reel_id, reel_url
+                            in reels.items()
+
+                            if reel_id not in previous_seen
+
+                        }
+
+
+                        if new_reels:
+
+                            print(
+                                f"[{username}] "
+                                f"🚨 NEW REELS: "
+                                f"{len(new_reels)}"
+                            )
+
+
+                            for (
+                                reel_id,
+                                reel_url
+                            ) in new_reels.items():
+
+
+                                print(
+                                    f"[{username}] "
+                                    f"NEW REEL ID: "
+                                    f"{reel_id}"
+                                )
+
+
+                                print(
+                                    f"[{username}] "
+                                    f"URL: "
+                                    f"{reel_url}"
+                                )
+
+
+                                # =================================================
+                                # TELEGRAM
+                                # =================================================
+
+                                telegram_success = (
+                                    send_telegram(
+                                        username,
+                                        reel_url
+                                    )
+                                )
+
+
+                                # =================================================
+                                # ONLY RETURN SUCCESSFUL IDs
+                                # =================================================
+
+                                if telegram_success:
+
+                                    successful_ids.add(
+                                        reel_id
+                                    )
+
+
+                                    print(
+                                        f"[{username}] "
+                                        f"Will save: "
+                                        f"{reel_id}"
+                                    )
+
+
+                                else:
+
+                                    print(
+                                        f"[{username}] "
+                                        f"Not saved because "
+                                        f"Telegram failed."
+                                    )
+
+
+                        else:
+
+                            print(
+                                f"[{username}] "
+                                f"No new reels."
+                            )
+
+
+            except Exception as e:
+
+                print(
+                    f"[{username}] "
+                    f"❌ CHECK ERROR:",
+                    repr(e)
+                )
+
+
+            # =================================================
+            # CHECK FINISHED
+            # =================================================
+
+            elapsed = (
+                time.perf_counter()
+                - start_time
+            )
+
+
+            print(
+                f"[{username}] "
+                f"Check time: "
+                f"{elapsed:.2f} seconds"
+            )
+
+
+            context.close()
+
+            browser.close()
+
+
+            print(
+                f"[{username}] Browser closed."
+            )
 
 
     except Exception as e:
@@ -772,8 +822,7 @@ seen = load_seen()
 
 
 print(
-    f"Seen database accounts: "
-    f"{len(seen)}"
+    f"Seen database accounts: {len(seen)}"
 )
 
 
@@ -814,8 +863,7 @@ for username in USERNAMES:
 # =============================================================
 
 print(
-    f"Parallel workers: "
-    f"{len(USERNAMES)}"
+    f"Parallel workers: {len(USERNAMES)}"
 )
 
 
